@@ -10,11 +10,11 @@ class FlowScreen extends StatefulWidget {
 class _FlowScreenState extends State<FlowScreen> {
   final _flowOffset = ValueNotifier<Offset>(Offset(0, 0));
   final _scale = ValueNotifier<double>(1.0);
+  final _dragHold = ValueNotifier<bool>(false);
+  final _panCaptured = ValueNotifier<bool>(false);
   Offset _tempOffset = Offset.zero;
   Offset _capturePosition = Offset.zero;
   double _scroll = 1.0;
-  bool _captured = false;
-  bool _dragHold = false;
 
   @override
   Widget build(BuildContext context) {
@@ -27,14 +27,14 @@ class _FlowScreenState extends State<FlowScreen> {
         focusNode: FocusNode(),
         onKey: (event) {
           if (event.isKeyPressed(LogicalKeyboardKey.space)) {
-            _dragHold = true;
+            _dragHold.value = true;
           } else {
-            _dragHold = false;
+            _dragHold.value = false;
           }
         },
         child: Listener(
           onPointerSignal: (event) {
-            if (event is PointerScrollEvent && _dragHold) {
+            if (event is PointerScrollEvent && _dragHold.value) {
               _scroll += event.scrollDelta.dy / 100.0;
 
               _scroll = _scroll > 1.5
@@ -50,20 +50,20 @@ class _FlowScreenState extends State<FlowScreen> {
             onPanStart: (details) {
               _capturePosition = details.globalPosition;
               _tempOffset = _flowOffset.value;
-              _captured = true;
+              _panCaptured.value = true;
             },
             onPanUpdate: (details) {
-              if (!_captured || !_dragHold) return;
+              if (!_panCaptured.value || !_dragHold.value) return;
 
               final diff = details.globalPosition - _capturePosition;
 
               _flowOffset.value = _tempOffset + diff;
             },
             onPanEnd: (details) {
-              _captured = false;
+              _panCaptured.value = false;
             },
             onPanCancel: () {
-              _captured = false;
+              _panCaptured.value = false;
             },
             child: Stack(
               fit: StackFit.expand,
@@ -93,10 +93,72 @@ class _FlowScreenState extends State<FlowScreen> {
                       height: screenSize.height,
                       color: Colors.red,
                       alignment: Alignment.center,
-                      child: Text(
-                        'Drag: Space + Left Mouse Button'
-                            '\nScale: Space + Mouse Scroll',
-                        textAlign: TextAlign.center,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ValueListenableBuilder<bool>(
+                            valueListenable: _dragHold,
+                            builder: (context, dragHold, child) {
+                              return ValueListenableBuilder(
+                                valueListenable: _panCaptured,
+                                builder: (context, panCaptured, child) {
+                                  return RichText(
+                                    textAlign: TextAlign.center,
+                                    text: TextSpan(
+                                      children: [
+                                        TextSpan(
+                                          text: 'Drag: ',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        TextSpan(
+                                          text: 'Space',
+                                          style: TextStyle(
+                                            color:
+                                                dragHold ? Colors.green : Colors.white,
+                                          ),
+                                        ),
+                                        TextSpan(
+                                          text: ' + Left Mouse Button',
+                                          style: TextStyle(
+                                            color: panCaptured ? Colors.green : Colors.white,
+                                          ),
+                                        ),
+                                        TextSpan(
+                                          text: '\nScale: ',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        TextSpan(
+                                          text: 'Space',
+                                          style: TextStyle(
+                                            color:
+                                                dragHold ? Colors.green : Colors.white,
+                                          ),
+                                        ),
+                                        TextSpan(
+                                          text: ' + Mouse Scroll',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                          ElevatedButton(
+                            onPressed: () {
+                              _flowOffset.value = Offset.zero;
+                              _scale.value = 1.0;
+                            },
+                            child: Text('Reset'),
+                          ),
+                        ],
                       ),
                     ),
                   ),
