@@ -4,37 +4,102 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_flow_dnd/widgets/widgets.dart';
 
-class FlowStack extends StatefulWidget {
-  FlowStack({
-    Key key,
-    this.scaleMin = 0.1,
-    this.scaleMax = 2.0,
-  })  : assert(scaleMin < scaleMax, 'scaleMax should be greater than scaleMin'),
-        super(key: key);
+class FlowStackValue {
+  const FlowStackValue({
+    this.offset = Offset.zero,
+    this.scale = 1.0,
+  });
 
+  /// Stack offset.
+  final Offset offset;
+
+  /// Stack scale
+  final double scale;
+
+  /// Creates a new instance of [FlowStackValue] based on current values
+  /// replaced with new [offset] or [scale].
+  FlowStackValue copyWith({
+    Offset offset,
+    double scale,
+  }) =>
+      FlowStackValue(
+        offset: offset ?? this.offset,
+        scale: scale ?? this.scale,
+      );
+}
+
+class FlowStackController extends ValueNotifier<FlowStackValue> {
+  FlowStackController({
+    FlowStackValue value,
+    this.scaleMin = 0.1,
+    this.scaleMax = 10.0,
+  })  : assert(scaleMin < scaleMax, 'scaleMax should be greater than scaleMin'),
+        super(value ?? FlowStackValue());
+
+  /// Minimum canvas scale.
   final double scaleMin;
+
+  /// Maximum canvas scale.
   final double scaleMax;
+
+  /// Returns [value] offset.
+  Offset get offset => this.value.offset;
+
+  /// Sets a new offset.
+  set offset(Offset newValue) {
+    super.value = super.value.copyWith(
+          offset: newValue,
+        );
+  }
+
+  /// Returns [value] scale.
+  double get scale => this.value.scale;
+
+  /// Sets a new scale.
+  set scale(double newValue) {
+    final newScale = newValue > scaleMax
+        ? scaleMax
+        : newValue < scaleMin
+            ? scaleMin
+            : newValue;
+
+    super.value = super.value.copyWith(
+          scale: newScale,
+        );
+  }
+}
+
+class FlowStack extends StatefulWidget {
+  const FlowStack({
+    Key key,
+    @required this.children,
+    this.controller,
+  }) : super(key: key);
+
+  /// List of child on a stack.
+  final List<Widget> children;
+
+  /// Controller that manage stack state.
+  final FlowStackController controller;
 
   @override
   _FlowStackState createState() => _FlowStackState();
 }
 
 class _FlowStackState extends State<FlowStack> {
-  final _flowOffset = ValueNotifier<Offset>(Offset(0, 0));
-  final _magnifierController = MagnifierControlController();
+  FlowStackController _controller;
   final _dragHold = ValueNotifier<bool>(false);
   final _panCaptured = ValueNotifier<bool>(false);
   Offset _tempOffset = Offset.zero;
   Offset _capturePosition = Offset.zero;
-  double _scroll = 1.0;
+  double _tempScale;
 
   @override
   void initState() {
     super.initState();
 
-    _magnifierController.addListener(() {
-      _scroll = _magnifierController.value;
-    });
+    _controller = widget.controller ?? FlowStackController();
+    _tempScale = _controller.scale;
   }
 
   @override
@@ -53,108 +118,35 @@ class _FlowStackState extends State<FlowStack> {
           onPanEnd: (details) => _handlePanEnd(),
           onPanCancel: _handlePanEnd,
           child: Scaffold(
-            backgroundColor: Colors.white,
+            backgroundColor: Colors.transparent,
             body: Stack(
               fit: StackFit.expand,
               clipBehavior: Clip.none,
               children: [
-                ValueListenableBuilder(
-                  valueListenable: _flowOffset,
+                // GridPaper(),
+                ValueListenableBuilder<FlowStackValue>(
+                  valueListenable: _controller,
                   builder: (_, value, child) {
                     return Positioned(
-                      left: value.dx,
-                      top: value.dy,
+                      left: value.offset.dx,
+                      top: value.offset.dy,
                       width: screenSize.width,
                       height: screenSize.height,
                       child: child,
                     );
                   },
-                  child: ValueListenableBuilder(
-                    valueListenable: _magnifierController,
+                  child: ValueListenableBuilder<FlowStackValue>(
+                    valueListenable: _controller,
                     builder: (context, value, child) {
                       return Transform.scale(
-                        scale: value,
+                        scale: value.scale,
                         child: child,
                       );
                     },
                     child: Container(
-                      color: Colors.red,
                       alignment: Alignment.center,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ValueListenableBuilder<bool>(
-                            valueListenable: _dragHold,
-                            builder: (context, dragHold, child) {
-                              return ValueListenableBuilder(
-                                valueListenable: _panCaptured,
-                                builder: (context, panCaptured, child) {
-                                  return RichText(
-                                    textAlign: TextAlign.center,
-                                    text: TextSpan(
-                                      children: [
-                                        TextSpan(
-                                          text: 'Drag: ',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        TextSpan(
-                                          text: 'Space',
-                                          style: TextStyle(
-                                            color: dragHold
-                                                ? Colors.green
-                                                : Colors.white,
-                                          ),
-                                        ),
-                                        TextSpan(
-                                          text: ' + Left Mouse Button',
-                                          style: TextStyle(
-                                            color: panCaptured
-                                                ? Colors.green
-                                                : Colors.white,
-                                          ),
-                                        ),
-                                        TextSpan(
-                                          text: '\nScale: ',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        TextSpan(
-                                          text: 'Space',
-                                          style: TextStyle(
-                                            color: dragHold
-                                                ? Colors.green
-                                                : Colors.white,
-                                          ),
-                                        ),
-                                        TextSpan(
-                                          text: ' + Mouse Scroll',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              );
-                            },
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.only(
-                              top: 16.0,
-                            ),
-                            child: ElevatedButton(
-                              onPressed: () {
-                                _flowOffset.value = Offset.zero;
-                                _magnifierController.value = 1.0;
-                              },
-                              child: Text('Reset'),
-                            ),
-                          ),
-                        ],
+                      child: Stack(
+                        children: widget.children,
                       ),
                     ),
                   ),
@@ -162,8 +154,14 @@ class _FlowStackState extends State<FlowStack> {
                 // INDICATORS
                 Align(
                   alignment: Alignment.topLeft,
-                  child: MagnifierControl(
-                    controller: _magnifierController,
+                  child: ValueListenableBuilder<FlowStackValue>(
+                    valueListenable: _controller,
+                    builder: (context, value, child) {
+                      return MagnifierControl(
+                        scale: value.scale,
+                        onChanged: (value) => _controller.scale = value,
+                      );
+                    },
                   ),
                 ),
               ],
@@ -186,20 +184,20 @@ class _FlowStackState extends State<FlowStack> {
     final height = MediaQuery.of(context).size.height;
 
     if (event is PointerScrollEvent && _dragHold.value) {
-      _scroll += event.scrollDelta.dy / height;
-      _scroll = _scroll > widget.scaleMax
-          ? widget.scaleMax
-          : _scroll < widget.scaleMin
-              ? widget.scaleMin
-              : _scroll;
+      _tempScale += event.scrollDelta.dy / height;
+      _tempScale = _tempScale > _controller.scaleMax
+          ? _controller.scaleMax
+          : _tempScale < _controller.scaleMin
+              ? _controller.scaleMin
+              : _tempScale;
 
-      _magnifierController.value = _scroll;
+      _controller.scale = _tempScale;
     }
   }
 
   void _handlePanStart(DragStartDetails details) {
     _capturePosition = details.globalPosition;
-    _tempOffset = _flowOffset.value;
+    _tempOffset = _controller.offset;
     _panCaptured.value = true;
   }
 
@@ -208,10 +206,19 @@ class _FlowStackState extends State<FlowStack> {
 
     final diff = details.globalPosition - _capturePosition;
 
-    _flowOffset.value = _tempOffset + diff;
+    _controller.offset = _tempOffset + diff;
   }
 
   void _handlePanEnd() {
     _panCaptured.value = false;
+  }
+
+  @override
+  void dispose() {
+    if (widget.controller == null) {
+      _controller.dispose();
+    }
+
+    super.dispose();
   }
 }

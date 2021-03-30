@@ -7,11 +7,62 @@ class FlowScreen extends StatefulWidget {
 }
 
 class _FlowScreenState extends State<FlowScreen> {
+  final flowStackController = FlowStackController();
+
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: FlowStack(),
+      backgroundColor: Colors.red,
+      body: FlowStack(
+        children: [
+          Align(
+            alignment: Alignment.center,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                RichText(
+                  textAlign: TextAlign.center,
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: 'Drag: ',
+                      ),
+                      TextSpan(
+                        text: 'Space + Left Mouse Button',
+                        style: TextStyle(
+                          color: Colors.green,
+                        ),
+                      ),
+                      TextSpan(
+                        text: '\nScale: ',
+                      ),
+                      TextSpan(
+                        text: 'Space + Mouse Scroll',
+                        style: TextStyle(
+                          color: Colors.green,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(
+                    top: 16.0,
+                  ),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // _flowOffset.value = Offset.zero;
+                      // _magnifierController.value = 1.0;
+                    },
+                    child: Text('Reset'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
-}
+}/**/
