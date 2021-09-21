@@ -1,6 +1,6 @@
 # flutter_flow_dnd
 
-Simple example of DND on Flutter Web 
+Simple example of DnD on Flutter Web 
 
 ## PREVIEW
 
